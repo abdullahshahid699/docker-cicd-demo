@@ -31,11 +31,8 @@ jobs:
         run: |
           npm start &
           APP_PID=$!
-
           sleep 5
-
           npm test
-
           kill $APP_PID
 
       - name: Set up Docker Buildx
@@ -53,12 +50,10 @@ jobs:
 
       - name: Test Docker image
         run: |
-          docker run -d -p 3000:3000 --name test-container ${{ env.DOCKER_IMAGE_NAME }}:test
-
+          docker rm -f test-container 2>/dev/null || true
+          docker run -d -p 3001:3000 --name test-container ${{ env.DOCKER_IMAGE_NAME }}:test
           sleep 10
-
-          curl -f http://localhost:3000/health || exit 1
-
+          curl -f http://localhost:3001/health || exit 1
           docker stop test-container
           docker rm test-container
 
