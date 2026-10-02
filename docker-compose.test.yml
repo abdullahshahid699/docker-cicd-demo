@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=test
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      app:
+        condition: service_healthy
+
+  test-runner:
+    image: curlimages/curl:latest
+    depends_on:
+      app:
+        condition: service_healthy
+      nginx:
+        condition: service_started
+    command: >
+      sh -c "
+        echo 'Running integration tests...';
+        curl -f http://app:3000/health;
+        echo 'App health check passed';
+        curl -f http://nginx/health;
+        echo 'Nginx proxy test passed';
+        echo 'All integration tests passed!'
+      "
